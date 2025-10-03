@@ -17,6 +17,7 @@
     },
     {
         "course_id": "DS2004",
+        "section": "003",
         "title": "Data Ethics",
         "level": 2000,
         "instructors": [
