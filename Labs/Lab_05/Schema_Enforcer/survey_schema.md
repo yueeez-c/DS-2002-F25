@@ -1,4 +1,5 @@
 | Column Name | Required Data Type | Brief Description |
+|:---|:---|:---|
 | `student_id` | `INT` | Unique identifier for the student. |
 | `major` | `VARCHAR(30)` | Student's major |
 | `GPA` | `FLOAT` | Student's GPA |
