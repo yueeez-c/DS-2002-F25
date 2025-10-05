@@ -1,2 +1,9 @@
 student_id,major,GPA,is_cs_major,credits_taken
-id,mj,4,Yes,18.0
+123,Computer Science,4,Yes,15.0
+124,Mathematics,3,No,12.0
+125,Physics,3,No,9.0
+126,Computer Science,4,Yes,18.0
+127,Biology,4,No,12.0
+128,Chemistry,4,No,15.0
+129,Computer Science,4,Yes,21.0
+130,Mathematics,3,No,6.0

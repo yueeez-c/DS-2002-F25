@@ -1,20 +1,19 @@
 import pandas as pd
 import json
 def generate_raw_data():
-    student_id = "id"
-    major = "mj"
-    GPA = 4
-    is_cs_major ="Yes"
-    credits_taken = "18.0"
     output_filename = "Labs/Lab_05/Schema_Enforcer/raw_survey_data.csv"
-    raw_data = {
-        "student_id": [student_id],
-        "major": [major],
-        "GPA": [GPA],
-        "is_cs_major": [is_cs_major],
-        "credits_taken": [credits_taken]
-    }
-    df = pd.DataFrame(raw_data)
+    collmns = ["student_id", "major", "GPA", "is_cs_major", "credits_taken"]
+    raw_data = [
+        [123, "Computer Science", 4, "Yes", "15.0"],
+        [124, "Mathematics", 3, "No", "12.0"],
+        [125, "Physics", 3, "No", "9.0"],
+        [126, "Computer Science", 4, "Yes", "18.0"],
+        [127, "Biology", 4, "No", "12.0"],
+        [128, "Chemistry", 4, "No", "15.0"],
+        [129, "Computer Science", 4, "Yes", "21.0"],
+        [130, "Mathematics", 3, "No", "6.0"]
+    ]
+    df = pd.DataFrame(raw_data, columns=collmns)
     df.to_csv(output_filename, index=False)
 
     courses_list = [
