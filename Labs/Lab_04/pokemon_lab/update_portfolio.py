@@ -1,0 +1,87 @@
+import os,sys
+import json
+from pathlib import Path
+import pandas as pd
+global required_cols
+def _load_lookup_data(lookup_dir):
+    required_cols = ['card_id','card_name','card_number','set_id','set_name','card_market_value']
+    all_lookup_df = []
+    print("asdfgadsgagaheeeeeerre")
+    for file in os.listdir(lookup_dir):
+        if file.endswith('.json'):
+            filepath = os.path.join(lookup_dir, file)
+            print(f"Loading lookup data from {filepath}")
+            with open(filepath, 'r', encoding='utf-8') as f: data = json.load(f)
+            df=pd.json_normalize(data['data'])
+            df['card_market_value']=(df['tcgplayer.prices.holofoil.market'].fillna(df['tcgplayer.prices.normal.market']).fillna(0.0))
+            df = df.rename(columns={
+    'id': 'card_id',
+    'name': 'card_name',
+    'number': 'card_number',
+    'set.id': 'set_id',
+    'set.name': 'set_name'
+})
+
+            all_lookup_df.append(df[required_cols].copy())
+    if not all_lookup_df:
+        print("Look up data is enpty", file=sys.stderr)
+        return
+    lookup_df = pd.concat(all_lookup_df, ignore_index=True)
+    lookup_df.sort_values(by='card_market_value', ascending=False, inplace=True)
+    lookup_df.drop_duplicates(subset=['card_id'], keep='first',inplace=True)
+    return lookup_df
+def _load_inventory_data(inventory_dir):
+    inventory_data = []
+    all_lookup_df = []
+    for inventory_file in inventory_dir.glob('*.csv'):
+        data = pd.read_csv(inventory_file)
+        inventory_data.append(data)
+    if inventory_data is None:
+        return
+    inventory_df = pd.concat(inventory_data, ignore_index=True)
+    inventory_df['card_id'] = inventory_df['set_id'].astype(str)+"-"+inventory_df['card_number'].astype(str)
+    return inventory_df
+       
+def update_portfolio(inventory_dir, lookup_dir,output_file):
+    lookup_df = _load_lookup_data(lookup_dir)
+    inventory_df = _load_inventory_data(inventory_dir)
+    if(inventory_df is None ):
+        sys.stderr("No inventory data found")
+        inventory_df=pd.DataFrame(columns=required_cols)
+        inventory_df.to_csv(output_file, index=False)
+        return
+    merged_df = pd.merge(inventory_df, lookup_df, on='card_id', how='left')
+    merged_df['card_market_value'] = merged_df['card_market_value'].fillna(0.0)
+    merged_df['set_name'] = merged_df['set_name'].fillna('NOT_FOUND')
+
+
+    merged_df['index'] = (
+    merged_df['binder_name'].astype(str) + '_' +
+    merged_df['page_number'].astype(str) + '_' +
+    merged_df['slot_number'].astype(str)
+)   
+    final_cols = [
+    'card_id', 'card_name', 'card_number',
+    'set_id', 'set_name', 'card_market_value',
+    'binder_name', 'page_number', 'slot_number'
+]
+
+    final_df = merged_df[final_cols]
+    fianl_df.to_csv(output_file, index=False)
+    print(f"Portfolio updated and saved to {output_file}")
+def main():
+    update_portfolio(
+        
+        inventory_dir=Path('/workspaces/DS-2002-F25/Labs/Lab_04/pokemon_lab/card_inventory/'),
+        lookup_dir=Path('/workspaces/DS-2002-F25/Labs/Lab_04/pokemon_lab/card_set_lookup/'),
+        output_file='card_portfolio.csv'
+    )
+def test():
+    update_portfolio(
+        inventory_dir=Path('/workspaces/DS-2002-F25/Labs/Lab_04/pokemon_lab/card_inventory_test/'),
+        lookup_dir=Path('/workspaces/DS-2002-F25/Labs/Lab_04/pokemon_lab/card_set_lookup_test/'),
+        output_file='test_card_portfolio.csv'
+    )
+if __name__ == '__main__':
+    print("Starting script in Test Mode")
+    test();
