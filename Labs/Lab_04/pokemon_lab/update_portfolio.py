@@ -42,33 +42,76 @@ def _load_inventory_data(inventory_dir):
     inventory_df['card_id'] = inventory_df['set_id'].astype(str)+"-"+inventory_df['card_number'].astype(str)
     return inventory_df
        
-def update_portfolio(inventory_dir, lookup_dir,output_file):
+import pandas as pd
+import sys
+
+def update_portfolio(inventory_dir, lookup_dir, output_file):
+    # Load lookup and inventory data
     lookup_df = _load_lookup_data(lookup_dir)
     inventory_df = _load_inventory_data(inventory_dir)
-    if(inventory_df is None ):
-        sys.stderr("No inventory data found")
-        inventory_df=pd.DataFrame(columns=required_cols)
+
+    # Define required columns
+    required_cols = [
+        'card_id', 'card_name', 'card_number',
+        'set_id', 'set_name', 'card_market_value',
+        'binder_name', 'page_number', 'slot_number'
+    ]
+
+    # Handle empty inventory
+    if inventory_df is None or inventory_df.empty:
+        print("No inventory data found", file=sys.stderr)
+        inventory_df = pd.DataFrame(columns=required_cols)
         inventory_df.to_csv(output_file, index=False)
         return
-    merged_df = pd.merge(inventory_df, lookup_df, on='card_id', how='left')
-    merged_df['card_market_value'] = merged_df['card_market_value'].fillna(0.0)
+
+    # Merge inventory and lookup on 'card_id', add suffixes to avoid collision
+    merged_df = pd.merge(
+        inventory_df, lookup_df,
+        on='card_id',
+        how='left',
+        suffixes=('_inv', '_lookup')
+    )
+
+    # Resolve final columns using lookup values if available, otherwise inventory
+    merged_df['card_name'] = merged_df['card_name_lookup'].combine_first(merged_df['card_name_inv'])
+    merged_df['card_number'] = merged_df['card_number_lookup'].combine_first(merged_df['card_number_inv'])
+    merged_df['set_id'] = merged_df['set_id_lookup'].combine_first(merged_df['set_id_inv'])
     merged_df['set_name'] = merged_df['set_name'].fillna('NOT_FOUND')
+    merged_df['card_market_value'] = merged_df['card_market_value'].fillna(0.0)
 
-
+    # Create final location index
     merged_df['index'] = (
-    merged_df['binder_name'].astype(str) + '_' +
-    merged_df['page_number'].astype(str) + '_' +
-    merged_df['slot_number'].astype(str)
-)   
-    final_cols = [
-    'card_id', 'card_name', 'card_number',
-    'set_id', 'set_name', 'card_market_value',
-    'binder_name', 'page_number', 'slot_number'
-]
+        merged_df['binder_name'].astype(str) + '_' +
+        merged_df['page_number'].astype(str) + '_' +
+        merged_df['slot_number'].astype(str)
+    )
 
+    # Drop helper columns created by merge
+    merged_df.drop(
+        columns=[
+            'card_name_inv', 'card_name_lookup',
+            'card_number_inv', 'card_number_lookup',
+            'set_id_inv', 'set_id_lookup'
+        ],
+        inplace=True
+    )
+
+
+    # Define final columns for output
+    final_cols = [
+        'card_id', 'card_name', 'card_number',
+        'set_id', 'set_name', 'card_market_value',
+        'index'
+    ]
+
+    # Select final columns
     final_df = merged_df[final_cols]
-    fianl_df.to_csv(output_file, index=False)
+
+    # Save to CSV
+    final_df.to_csv(output_file, index=False)
     print(f"Portfolio updated and saved to {output_file}")
+
+
 def main():
     update_portfolio(
         
