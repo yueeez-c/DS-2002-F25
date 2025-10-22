@@ -6,14 +6,17 @@ global required_cols
 def _load_lookup_data(lookup_dir):
     required_cols = ['card_id','card_name','card_number','set_id','set_name','card_market_value']
     all_lookup_df = []
-    print("asdfgadsgagaheeeeeerre")
     for file in os.listdir(lookup_dir):
         if file.endswith('.json'):
             filepath = os.path.join(lookup_dir, file)
             print(f"Loading lookup data from {filepath}")
             with open(filepath, 'r', encoding='utf-8') as f: data = json.load(f)
             df=pd.json_normalize(data['data'])
-            df['card_market_value']=(df['tcgplayer.prices.holofoil.market'].fillna(df['tcgplayer.prices.normal.market']).fillna(0.0))
+            
+            holo_prices = df.get('tcgplayer.prices.holofoil.market', pd.Series([None] * len(df)))
+            normal_prices = df.get('tcgplayer.prices.normal.market', pd.Series([None] * len(df)))
+            df['card_market_value'] = holo_prices.fillna(normal_prices).fillna(0.0)
+
             df = df.rename(columns={
     'id': 'card_id',
     'name': 'card_name',
